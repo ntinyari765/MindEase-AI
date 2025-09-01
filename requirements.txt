@@ -1,0 +1,8 @@
+Flask==2.3.3
+Flask-CORS==4.0.0
+mysql-connector-python==8.1.0
+Werkzeug==2.3.7
+textblob==0.17.1
+python-dotenv==1.0.0
+bcrypt==4.0.1
+PyJWT==2.8.0
