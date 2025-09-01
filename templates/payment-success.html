@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - MindEase AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .success-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #38b2ac 0%, #2b6cb0 100%);
+            padding: 20px;
+        }
+        
+        .success-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #38b2ac, #2b6cb0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            font-size: 3rem;
+            color: white;
+        }
+        
+        .success-title {
+            color: #2b6cb0;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .success-message {
+            color: #4a5568;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        
+        .premium-features {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+        
+        .premium-features h4 {
+            color: #2b6cb0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            color: #4a5568;
+        }
+        
+        .feature-list li i {
+            color: #38b2ac;
+            font-size: 1.1rem;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #38b2ac, #2b6cb0);
+            color: white;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(56, 178, 172, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+            border: none;
+        }
+        
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+        
+        @media (max-width: 600px) {
+            .cta-buttons {
+                flex-direction: column;
+            }
+            
+            .success-card {
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-card">
+            <div class="success-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            
+            <h1 class="success-title">Payment Successful!</h1>
+            
+            <p class="success-message">
+                🎉 Welcome to MindEase AI Premium! Your subscription is now active and you have access to all premium features.
+            </p>
+            
+            <div class="premium-features">
+                <h4>Your Premium Features</h4>
+                <ul class="feature-list">
+                    <li><i class="fas fa-chart-line"></i> Advanced Analytics Dashboard</li>
+                    <li><i class="fas fa-users"></i> Anonymous Aggregate Insights</li>
+                    <li><i class="fas fa-brain"></i> Enhanced AI Recommendations</li>
+                    <li><i class="fas fa-shield-alt"></i> Priority Support</li>
+                    <li><i class="fas fa-crown"></i> Premium Wellness Activities</li>
+                </ul>
+            </div>
+            
+            <div class="cta-buttons">
+                <a href="/premium-dashboard" class="btn btn-primary">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Go to Premium Dashboard
+                </a>
+                <a href="/" class="btn btn-secondary">
+                    <i class="fas fa-home"></i>
+                    Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-redirect to premium dashboard after 5 seconds
+        setTimeout(() => {
+            window.location.href = '/premium-dashboard';
+        }, 5000);
+    </script>
+</body>
+</html>

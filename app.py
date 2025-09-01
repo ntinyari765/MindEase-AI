@@ -3,7 +3,8 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 import json
-from datetime import datetime
+import requests
+from datetime import datetime, timedelta
 import os
 from db import get_db_connection, init_db
 from sentiment_analysis import analyze_sentiment_and_recommend
@@ -17,9 +18,101 @@ CORS(app, supports_credentials=True)
 # In-memory session storage (in production, use Redis or database)
 user_sessions = {}
 
+# IntaSend configuration
+INTASEND_API_KEY = os.getenv('INTASEND_API_KEY', 'your-intasend-api-key')
+INTASEND_SECRET_KEY = os.getenv('INTASEND_SECRET_KEY', 'your-intasend-secret-key')
+INTASEND_BASE_URL = 'https://sandbox.intasend.com'  # Use production URL in production
+PREMIUM_PRICE = 4900  # $49.00 in cents
+
 # Initialize database on startup
 with app.app_context():
     init_db()
+
+# IntaSend helper functions
+def create_intasend_customer(email, name):
+    """Create a customer in IntaSend"""
+    try:
+        headers = {
+            'Authorization': f'Bearer {INTASEND_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        data = {
+            'email': email,
+            'name': name
+        }
+        
+        response = requests.post(
+            f'{INTASEND_BASE_URL}/api/v1/customers/',
+            headers=headers,
+            json=data
+        )
+        
+        if response.status_code == 201:
+            return response.json()
+        else:
+            app.logger.error(f"IntaSend customer creation failed: {response.text}")
+            return None
+            
+    except Exception as e:
+        app.logger.error(f"IntaSend customer creation error: {str(e)}")
+        return None
+
+def create_intasend_payment_link(customer_id, amount, description):
+    """Create a payment link in IntaSend"""
+    try:
+        headers = {
+            'Authorization': f'Bearer {INTASEND_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        data = {
+            'customer': customer_id,
+            'amount': amount,
+            'currency': 'USD',
+            'description': description,
+            'redirect_url': f'{request.host_url}payment/success',
+            'webhook_url': f'{request.host_url}api/payment/webhook'
+        }
+        
+        response = requests.post(
+            f'{INTASEND_BASE_URL}/api/v1/payment-links/',
+            headers=headers,
+            json=data
+        )
+        
+        if response.status_code == 201:
+            return response.json()
+        else:
+            app.logger.error(f"IntaSend payment link creation failed: {response.text}")
+            return None
+            
+    except Exception as e:
+        app.logger.error(f"IntaSend payment link creation error: {str(e)}")
+        return None
+
+def verify_intasend_payment(payment_id):
+    """Verify payment status with IntaSend"""
+    try:
+        headers = {
+            'Authorization': f'Bearer {INTASEND_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        response = requests.get(
+            f'{INTASEND_BASE_URL}/api/v1/payments/{payment_id}/',
+            headers=headers
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            app.logger.error(f"IntaSend payment verification failed: {response.text}")
+            return None
+            
+    except Exception as e:
+        app.logger.error(f"IntaSend payment verification error: {str(e)}")
+        return None
 
 @app.route('/')
 def home():
@@ -43,7 +136,61 @@ def dashboard():
     token = request.cookies.get('session_token')
     if not token or token not in user_sessions:
         return redirect(url_for('login_page'))
+    
+    # Check if user is premium and redirect to premium dashboard
+    user_info = user_sessions[token]
+    user_id = user_info['user_id']
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute(
+        "SELECT subscription_type FROM users WHERE id = %s",
+        (user_id,)
+    )
+    user = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+    
+    if user and user['subscription_type'] == 'premium':
+        return redirect(url_for('premium_dashboard'))
+    
     return render_template('dashboard.html')
+
+@app.route('/premium-dashboard')
+def premium_dashboard():
+    """Serve the premium dashboard page"""
+    # Check if user is logged in
+    token = request.cookies.get('session_token')
+    if not token or token not in user_sessions:
+        return redirect(url_for('login_page'))
+    
+    # Check if user is premium
+    user_info = user_sessions[token]
+    user_id = user_info['user_id']
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute(
+        "SELECT subscription_type FROM users WHERE id = %s",
+        (user_id,)
+    )
+    user = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+    
+    if not user or user['subscription_type'] != 'premium':
+        return redirect(url_for('dashboard'))
+    
+    return render_template('premium-dashboard.html')
+
+@app.route('/payment/success')
+def payment_success():
+    """Serve the payment success page"""
+    return render_template('payment-success.html')
 
 @app.route('/api/signup', methods=['POST'])
 def signup():
@@ -427,7 +574,9 @@ def get_user_profile():
         cursor = conn.cursor(dictionary=True)
         
         cursor.execute(
-            "SELECT id, username, email, created_at FROM users WHERE id = %s",
+            """SELECT id, username, email, subscription_type, subscription_status, 
+               subscription_start_date, subscription_end_date, created_at 
+               FROM users WHERE id = %s""",
             (user_id,)
         )
         user = cursor.fetchone()
@@ -447,6 +596,10 @@ def get_user_profile():
                 'id': user['id'],
                 'username': user['username'],
                 'email': user['email'],
+                'subscription_type': user['subscription_type'],
+                'subscription_status': user['subscription_status'],
+                'subscription_start_date': user['subscription_start_date'].isoformat() if user['subscription_start_date'] else None,
+                'subscription_end_date': user['subscription_end_date'].isoformat() if user['subscription_end_date'] else None,
                 'member_since': user['created_at'].isoformat() if user['created_at'] else None
             }
         })
@@ -457,6 +610,274 @@ def get_user_profile():
             'status': 'error',
             'message': 'Internal server error'
         }), 500
+
+@app.route('/api/upgrade/premium', methods=['POST'])
+def upgrade_to_premium():
+    """Create IntaSend payment link for premium upgrade"""
+    try:
+        # Check authentication
+        token = request.cookies.get('session_token')
+        if not token or token not in user_sessions:
+            return jsonify({
+                'status': 'error',
+                'message': 'Authentication required'
+            }), 401
+        
+        user_info = user_sessions[token]
+        user_id = user_info['user_id']
+        
+        # Get user details
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute(
+            "SELECT username, email, subscription_type FROM users WHERE id = %s",
+            (user_id,)
+        )
+        user = cursor.fetchone()
+        
+        if not user:
+            return jsonify({
+                'status': 'error',
+                'message': 'User not found'
+            }), 404
+        
+        # Check if already premium
+        if user['subscription_type'] == 'premium':
+            return jsonify({
+                'status': 'error',
+                'message': 'User is already a premium subscriber'
+            }), 400
+        
+        # Create or get IntaSend customer
+        if not user.get('intasend_customer_id'):
+            customer_data = create_intasend_customer(user['email'], user['username'])
+            if not customer_data:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Failed to create payment customer'
+                }), 500
+            
+            # Update user with IntaSend customer ID
+            cursor.execute(
+                "UPDATE users SET intasend_customer_id = %s WHERE id = %s",
+                (customer_data['id'], user_id)
+            )
+            conn.commit()
+            customer_id = customer_data['id']
+        else:
+            customer_id = user['intasend_customer_id']
+        
+        # Create payment link
+        payment_data = create_intasend_payment_link(
+            customer_id, 
+            PREMIUM_PRICE, 
+            f"MindEase AI Premium Subscription - {user['username']}"
+        )
+        
+        if not payment_data:
+            return jsonify({
+                'status': 'error',
+                'message': 'Failed to create payment link'
+            }), 500
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'status': 'success',
+            'payment_url': payment_data['payment_url'],
+            'payment_id': payment_data['id']
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Premium upgrade error: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': 'Internal server error'
+        }), 500
+
+@app.route('/api/payment/webhook', methods=['POST'])
+def payment_webhook():
+    """Handle IntaSend payment webhook"""
+    try:
+        data = request.get_json()
+        
+        if not data or data.get('event') != 'payment.completed':
+            return jsonify({'status': 'ignored'}), 200
+        
+        payment_id = data.get('payment_id')
+        if not payment_id:
+            return jsonify({'status': 'error', 'message': 'No payment ID'}), 400
+        
+        # Verify payment with IntaSend
+        payment_info = verify_intasend_payment(payment_id)
+        if not payment_info or payment_info.get('status') != 'completed':
+            return jsonify({'status': 'error', 'message': 'Payment not completed'}), 400
+        
+        # Find user by customer ID
+        customer_id = payment_info.get('customer_id')
+        if not customer_id:
+            return jsonify({'status': 'error', 'message': 'No customer ID'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute(
+            "SELECT id FROM users WHERE intasend_customer_id = %s",
+            (customer_id,)
+        )
+        user = cursor.fetchone()
+        
+        if not user:
+            return jsonify({'status': 'error', 'message': 'User not found'}), 404
+        
+        # Update user to premium
+        start_date = datetime.now()
+        end_date = start_date + timedelta(days=30)  # 30-day subscription
+        
+        cursor.execute(
+            """UPDATE users SET 
+               subscription_type = 'premium',
+               subscription_status = 'active',
+               subscription_start_date = %s,
+               subscription_end_date = %s
+               WHERE id = %s""",
+            (start_date, end_date, user['id'])
+        )
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        app.logger.info(f"User {user['id']} upgraded to premium successfully")
+        
+        return jsonify({'status': 'success'}), 200
+        
+    except Exception as e:
+        app.logger.error(f"Payment webhook error: {str(e)}")
+        return jsonify({'status': 'error', 'message': 'Webhook processing failed'}), 500
+
+@app.route('/api/aggregate-insights', methods=['GET'])
+def get_aggregate_insights():
+    """Get anonymous aggregate insights for premium users"""
+    try:
+        # Check authentication
+        token = request.cookies.get('session_token')
+        if not token or token not in user_sessions:
+            return jsonify({
+                'status': 'error',
+                'message': 'Authentication required'
+            }), 401
+        
+        user_info = user_sessions[token]
+        user_id = user_info['user_id']
+        
+        # Check if user is premium
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute(
+            "SELECT subscription_type FROM users WHERE id = %s",
+            (user_id,)
+        )
+        user = cursor.fetchone()
+        
+        if not user or user['subscription_type'] != 'premium':
+            return jsonify({
+                'status': 'error',
+                'message': 'Premium subscription required'
+            }), 403
+        
+        # Get date range (default to last 30 days)
+        days = request.args.get('days', 30, type=int)
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=days)
+        
+        # Get aggregate insights
+        cursor.execute(
+            """SELECT date, total_users, total_checkins, avg_wellness_score,
+               stress_levels, energy_levels, sleep_quality, common_concerns, popular_activities
+               FROM aggregate_insights 
+               WHERE date BETWEEN %s AND %s 
+               ORDER BY date DESC""",
+            (start_date, end_date)
+        )
+        
+        insights = cursor.fetchall()
+        
+        # If no insights exist, generate some sample data
+        if not insights:
+            insights = generate_sample_insights(start_date, end_date)
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'status': 'success',
+            'insights': insights,
+            'date_range': {
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
+                'days': days
+            }
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Aggregate insights error: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': 'Internal server error'
+        }), 500
+
+def generate_sample_insights(start_date, end_date):
+    """Generate sample aggregate insights for demonstration"""
+    import random
+    from datetime import timedelta
+    
+    insights = []
+    current_date = start_date
+    
+    while current_date <= end_date:
+        insight = {
+            'date': current_date.isoformat(),
+            'total_users': random.randint(50, 200),
+            'total_checkins': random.randint(100, 500),
+            'avg_wellness_score': round(random.uniform(60, 85), 1),
+            'stress_levels': {
+                'low': random.randint(20, 40),
+                'moderate': random.randint(30, 50),
+                'high': random.randint(10, 30)
+            },
+            'energy_levels': {
+                'low': random.randint(15, 35),
+                'moderate': random.randint(35, 55),
+                'high': random.randint(20, 40)
+            },
+            'sleep_quality': {
+                'poor': random.randint(10, 25),
+                'moderate': random.randint(40, 60),
+                'good': random.randint(25, 45)
+            },
+            'common_concerns': [
+                'Work stress',
+                'Sleep quality',
+                'Energy levels',
+                'Time management',
+                'Work-life balance'
+            ],
+            'popular_activities': [
+                'Deep breathing exercises',
+                'Quick desk stretches',
+                'Mindful walking',
+                'Gratitude practice',
+                'Progressive muscle relaxation'
+            ]
+        }
+        insights.append(insight)
+        current_date += timedelta(days=1)
+    
+    return insights
 
 @app.route('/api/daily-tip', methods=['GET'])
 def get_daily_tip():

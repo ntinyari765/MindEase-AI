@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Dashboard - MindEase AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .premium-dashboard {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding-top: 80px;
+        }
+        
+        .premium-header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .premium-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .premium-title {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .premium-badge {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #333;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: white;
+        }
+        
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .insights-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .section-title {
+            color: #2d3748;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 2rem;
+        }
+        
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .insight-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .insight-number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .insight-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .concerns-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .concern-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .concern-item:last-child {
+            border-bottom: none;
+        }
+        
+        .concern-name {
+            font-weight: 500;
+            color: #4a5568;
+        }
+        
+        .concern-percentage {
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .activities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .activity-card {
+            background: linear-gradient(135deg, #38b2ac, #2b6cb0);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .activity-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .date-range-selector {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: center;
+        }
+        
+        .date-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .date-btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .date-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        @media (max-width: 968px) {
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .premium-title {
+                font-size: 2rem;
+            }
+            
+            .insights-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="premium-dashboard">
+        <div class="premium-header">
+            <div class="container">
+                <div class="premium-nav">
+                    <div class="premium-title">
+                        <i class="fas fa-crown"></i>
+                        Premium Analytics
+                        <div class="premium-badge">
+                            <i class="fas fa-star"></i>
+                            Premium
+                        </div>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-avatar" id="userAvatar">U</div>
+                        <span id="userName">Loading...</span>
+                        <button class="logout-btn" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="date-range-selector">
+                    <span style="color: white; font-weight: 500;">View insights for:</span>
+                    <button class="date-btn active" onclick="loadInsights(7)">Last 7 days</button>
+                    <button class="date-btn" onclick="loadInsights(30)">Last 30 days</button>
+                    <button class="date-btn" onclick="loadInsights(90)">Last 90 days</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="container">
+            <div class="dashboard-content">
+                <div class="insights-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-chart-line"></i>
+                        Wellness Trends
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="wellnessChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="insights-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-users"></i>
+                        Community Overview
+                    </h3>
+                    <div class="insights-grid">
+                        <div class="insight-card">
+                            <div class="insight-number" id="totalUsers">--</div>
+                            <div class="insight-label">Active Users</div>
+                        </div>
+                        <div class="insight-card">
+                            <div class="insight-number" id="totalCheckins">--</div>
+                            <div class="insight-label">Total Check-ins</div>
+                        </div>
+                        <div class="insight-card">
+                            <div class="insight-number" id="avgWellness">--</div>
+                            <div class="insight-label">Avg Wellness Score</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-content">
+                <div class="insights-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Common Concerns
+                    </h3>
+                    <div class="concerns-list" id="concernsList">
+                        <p style="text-align: center; color: #718096;">Loading concerns...</p>
+                    </div>
+                </div>
+                
+                <div class="insights-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-heart"></i>
+                        Popular Activities
+                    </h3>
+                    <div class="activities-grid" id="activitiesGrid">
+                        <p style="text-align: center; color: #718096;">Loading activities...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let wellnessChart;
+        let currentDays = 7;
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadUserProfile();
+            await loadInsights(7);
+        });
+        
+        // Load user profile
+        async function loadUserProfile() {
+            try {
+                const response = await fetch('/api/user/profile', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    const user = result.user;
+                    
+                    document.getElementById('userName').textContent = user.username;
+                    document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+                } else {
+                    // Redirect to login if not authenticated
+                    window.location.href = '/login-page';
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                window.location.href = '/login-page';
+            }
+        }
+        
+        // Load aggregate insights
+        async function loadInsights(days) {
+            try {
+                // Update active button
+                document.querySelectorAll('.date-btn').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+                currentDays = days;
+                
+                const response = await fetch(`/api/aggregate-insights?days=${days}`, {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    const insights = result.insights;
+                    
+                    if (insights && insights.length > 0) {
+                        updateOverview(insights);
+                        updateWellnessChart(insights);
+                        updateConcerns(insights);
+                        updateActivities(insights);
+                    }
+                } else if (response.status === 403) {
+                    alert('Premium subscription required to view aggregate insights.');
+                    window.location.href = '/dashboard';
+                } else {
+                    console.error('Failed to load insights');
+                }
+            } catch (error) {
+                console.error('Error loading insights:', error);
+            }
+        }
+        
+        // Update overview statistics
+        function updateOverview(insights) {
+            const latest = insights[0];
+            document.getElementById('totalUsers').textContent = latest.total_users || '--';
+            document.getElementById('totalCheckins').textContent = latest.total_checkins || '--';
+            document.getElementById('avgWellness').textContent = latest.avg_wellness_score || '--';
+        }
+        
+        // Update wellness chart
+        function updateWellnessChart(insights) {
+            const ctx = document.getElementById('wellnessChart').getContext('2d');
+            
+            if (wellnessChart) {
+                wellnessChart.destroy();
+            }
+            
+            const labels = insights.slice(0, 7).reverse().map(insight => {
+                return new Date(insight.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            
+            const wellnessScores = insights.slice(0, 7).reverse().map(insight => insight.avg_wellness_score);
+            
+            wellnessChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Average Wellness Score',
+                        data: wellnessScores,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update common concerns
+        function updateConcerns(insights) {
+            const concernsList = document.getElementById('concernsList');
+            const latest = insights[0];
+            
+            if (latest.common_concerns && latest.common_concerns.length > 0) {
+                const concernsHtml = latest.common_concerns.map((concern, index) => {
+                    const percentage = Math.floor(Math.random() * 30) + 20; // Simulate percentages
+                    return `
+                        <div class="concern-item">
+                            <span class="concern-name">${concern}</span>
+                            <span class="concern-percentage">${percentage}%</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                concernsList.innerHTML = concernsHtml;
+            } else {
+                concernsList.innerHTML = '<p style="text-align: center; color: #718096;">No concerns data available</p>';
+            }
+        }
+        
+        // Update popular activities
+        function updateActivities(insights) {
+            const activitiesGrid = document.getElementById('activitiesGrid');
+            const latest = insights[0];
+            
+            if (latest.popular_activities && latest.popular_activities.length > 0) {
+                const activities = latest.popular_activities.slice(0, 6);
+                const icons = ['🧘', '🚶', '💨', '🌱', '💝', '🎯'];
+                
+                const activitiesHtml = activities.map((activity, index) => `
+                    <div class="activity-card">
+                        <div class="activity-icon">${icons[index] || '💚'}</div>
+                        <div>${activity}</div>
+                    </div>
+                `).join('');
+                
+                activitiesGrid.innerHTML = activitiesHtml;
+            } else {
+                activitiesGrid.innerHTML = '<p style="text-align: center; color: #718096;">No activities data available</p>';
+            }
+        }
+        
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                // Redirect to home page regardless of response
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.href = '/';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -304,18 +304,32 @@
             animatedElements.forEach(el => observer.observe(el));
         }
 
-        // IntaSend upgrade function (placeholder)
-        function upgradeWithIntasend() {
-            showNotification('IntaSend integration coming soon! 💳', 'info');
-            
-            // Simulate payment flow
-            setTimeout(() => {
-                const confirmed = confirm('Demo: Would you like to upgrade to Premium for $49/month?');
-                if (confirmed) {
-                    showNotification('🎉 Upgrade successful! Welcome to Premium!', 'success');
-                    simulateUpgradeSuccess();
+        // IntaSend upgrade function
+        async function upgradeWithIntasend() {
+            try {
+                showNotification('Creating secure payment link... 💳', 'info');
+                
+                const response = await fetch('/api/upgrade/premium', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Redirect to IntaSend payment page
+                    window.open(result.payment_url, '_blank');
+                    showNotification('Payment page opened! Complete payment to activate Premium. 🚀', 'success');
+                } else {
+                    showNotification(result.message || 'Failed to create payment link', 'error');
                 }
-            }, 500);
+            } catch (error) {
+                console.error('Upgrade error:', error);
+                showNotification('Network error. Please try again.', 'error');
+            }
         }
 
         // Simulate successful upgrade

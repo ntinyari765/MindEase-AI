@@ -329,6 +329,65 @@
                 grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             }
         }
+        
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 10001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-left: 4px solid #38b2ac;
+        }
+
+        .notification.error {
+            border-left: 4px solid #e53e3e;
+        }
+
+        .notification.info {
+            border-left: 4px solid #4299e1;
+        }
+
+        .notification i {
+            font-size: 1.2rem;
+        }
+
+        .notification.success i {
+            color: #38b2ac;
+        }
+
+        .notification.error i {
+            color: #e53e3e;
+        }
+
+        .notification.info i {
+            color: #4299e1;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #718096;
+            cursor: pointer;
+            margin-left: auto;
+        }
     </style>
 </head>
 <body>
@@ -467,6 +526,11 @@
                     
                     document.getElementById('userName').textContent = user.username;
                     document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+                    
+                    // Show premium upgrade option for free users
+                    if (user.subscription_type === 'free') {
+                        showPremiumUpgradeOption();
+                    }
                 } else {
                     // Redirect to login if not authenticated
                     window.location.href = '/login-page';
@@ -475,6 +539,108 @@
                 console.error('Error loading profile:', error);
                 window.location.href = '/login-page';
             }
+        }
+        
+        // Show premium upgrade option
+        function showPremiumUpgradeOption() {
+            const sidebar = document.querySelector('.sidebar');
+            const upgradeCard = document.createElement('div');
+            upgradeCard.className = 'sidebar-card';
+            upgradeCard.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+            upgradeCard.style.color = 'white';
+            upgradeCard.innerHTML = `
+                <h4 style="color: white; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-crown"></i>
+                    Upgrade to Premium
+                </h4>
+                <p style="color: rgba(255,255,255,0.9); font-size: 0.9rem; margin-bottom: 1rem;">
+                    Unlock advanced analytics, aggregate insights, and premium features.
+                </p>
+                <button onclick="upgradeToPremium()" style="
+                    width: 100%;
+                    background: rgba(255,255,255,0.2);
+                    color: white;
+                    border: 1px solid rgba(255,255,255,0.3);
+                    padding: 0.75rem;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='rgba(255,255,255,0.3)'" 
+                   onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                    <i class="fas fa-rocket"></i> Upgrade Now - $49/month
+                </button>
+            `;
+            sidebar.insertBefore(upgradeCard, sidebar.firstChild);
+        }
+        
+        // Upgrade to premium function
+        async function upgradeToPremium() {
+            try {
+                const response = await fetch('/api/upgrade/premium', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Open payment page in new tab
+                    window.open(result.payment_url, '_blank');
+                    
+                    // Show success message
+                    showNotification('Payment page opened! Complete payment to activate Premium. 🚀', 'success');
+                } else {
+                    showNotification(result.message || 'Failed to create payment link', 'error');
+                }
+            } catch (error) {
+                console.error('Upgrade error:', error);
+                showNotification('Network error. Please try again.', 'error');
+            }
+        }
+        
+        // Notification system
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const icons = {
+                success: 'fas fa-check-circle',
+                error: 'fas fa-exclamation-circle',
+                info: 'fas fa-info-circle'
+            };
+            
+            notification.innerHTML = `
+                <i class="${icons[type]}"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()" class="notification-close">&times;</button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (notification.parentElement) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
         }
         
         // Load wellness statistics

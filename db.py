@@ -42,10 +42,17 @@ def init_db():
             username VARCHAR(50) NOT NULL UNIQUE,
             email VARCHAR(100) DEFAULT '',
             password VARCHAR(255) NOT NULL,
+            subscription_type ENUM('free', 'premium') DEFAULT 'free',
+            subscription_status ENUM('active', 'cancelled', 'expired') DEFAULT 'active',
+            subscription_start_date TIMESTAMP NULL,
+            subscription_end_date TIMESTAMP NULL,
+            intasend_customer_id VARCHAR(100) DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX idx_username (username),
-            INDEX idx_email (email)
+            INDEX idx_email (email),
+            INDEX idx_subscription_type (subscription_type),
+            INDEX idx_intasend_customer_id (intasend_customer_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         """
         
@@ -95,6 +102,26 @@ def init_db():
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         """
         
+        # Create aggregate_insights table for premium analytics
+        create_insights_table = """
+        CREATE TABLE IF NOT EXISTS aggregate_insights (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            date DATE NOT NULL,
+            total_users INT DEFAULT 0,
+            total_checkins INT DEFAULT 0,
+            avg_wellness_score DECIMAL(5,2) DEFAULT 0.00,
+            stress_levels JSON,
+            energy_levels JSON,
+            sleep_quality JSON,
+            common_concerns JSON,
+            popular_activities JSON,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_date (date),
+            INDEX idx_date (date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        """
+        
         # Execute table creation
         cursor.execute(create_users_table)
         print("✓ Users table created/verified")
@@ -107,6 +134,9 @@ def init_db():
         
         cursor.execute(create_activities_table)
         print("✓ Wellness activities table created/verified")
+        
+        cursor.execute(create_insights_table)
+        print("✓ Aggregate insights table created/verified")
         
         # Insert default wellness activities
         insert_default_activities(cursor)
