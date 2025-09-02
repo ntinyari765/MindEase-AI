@@ -336,10 +336,12 @@ elif energy_level <= 3:
 
 ---
 
-## 🌐 Live Demo & Deployment
+## 🌐 Live Deployment
 
-### **🚀 Live Deployment**
-**[View Live Application →](web-production-d5f0.up.railway.app)**
+## Live Deployment
+
+- [Live Demo](https://web-production-d5f0.up.railway.app/)
+
 
 ---
 
