@@ -5,7 +5,6 @@
 ## Project Links
 
 - [Live Demo](https://web-production-d5f0.up.railway.app/)
-- [Source Code](https://github.com/ntinyari765/MindEase-AI)
 
 > **Detect stress early. Prevent burnout. Transform your wellness journey with AI.**
 
