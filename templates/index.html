@@ -188,7 +188,7 @@
                             <li><i class="fas fa-check"></i> Custom branding</li>
                         </ul>
                     </div>
-                    <button class="pricing-btn premium-btn" onclick="upgradeWithIntasend()">
+                    <button class="pricing-btn premium-btn" onclick="upgradeToPremium()">
                         <i class="fas fa-crown"></i>
                         Upgrade with IntaSend
                     </button>
@@ -304,11 +304,9 @@
             animatedElements.forEach(el => observer.observe(el));
         }
 
-        // IntaSend upgrade function
-        async function upgradeWithIntasend() {
+         // Upgrade to premium function
+         async function upgradeToPremium() {
             try {
-                showNotification('Creating secure payment link... 💳', 'info');
-                
                 const response = await fetch('/api/upgrade/premium', {
                     method: 'POST',
                     headers: {
@@ -320,8 +318,10 @@
                 const result = await response.json();
                 
                 if (response.ok) {
-                    // Redirect to IntaSend payment page
+                    // Open payment page in new tab
                     window.open(result.payment_url, '_blank');
+                    
+                    // Show success message
                     showNotification('Payment page opened! Complete payment to activate Premium. 🚀', 'success');
                 } else {
                     showNotification(result.message || 'Failed to create payment link', 'error');
@@ -331,18 +331,7 @@
                 showNotification('Network error. Please try again.', 'error');
             }
         }
-
-        // Simulate successful upgrade
-        function simulateUpgradeSuccess() {
-            const premiumCard = document.querySelector('.pricing-card.premium');
-            if (premiumCard) {
-                const badge = premiumCard.querySelector('.popular-badge');
-                if (badge) {
-                    badge.textContent = 'Current Plan';
-                    badge.style.background = 'linear-gradient(135deg, #38b2ac, #2b6cb0)';
-                }
-            }
-        }
+        
 
         // Notification system
         function showNotification(message, type = 'info') {

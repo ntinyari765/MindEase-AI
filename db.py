@@ -7,24 +7,32 @@ from datetime import datetime
 
 load_dotenv()
 
-# Database configuration
-DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'port': os.getenv('DB_PORT', 3306),
-    'database': os.getenv('DB_NAME', 'mindease_db'),
-    'user': os.getenv('DB_USER', 'root'),
-    'password': os.getenv('DB_PASSWORD', ''),
-    'charset': 'utf8mb4',
-    'collation': 'utf8mb4_unicode_ci',
-    'autocommit': True
-}
-
 def get_db_connection():
     """Create and return a database connection"""
     try:
-        connection = mysql.connector.connect(**DB_CONFIG)
-        connection.cursor().execute("SET SESSION sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO'")
+        # Railway provides a MYSQL_URL env variable like:
+        # mysql://username:password@host:port/database
+        db_url = os.getenv("DATABASE_URL") or os.getenv("MYSQL_URL")
+        if not db_url:
+            raise Exception("DATABASE_URL or MYSQL_URL not set")
+
+        url = urlparse(db_url)
+
+        connection = mysql.connector.connect(
+            host=url.hostname,
+            port=url.port,
+            user=url.username,
+            password=url.password,
+            database=url.path.lstrip("/"),  # remove leading "/"
+            charset="utf8mb4"
+        )
+
+        # Strict SQL mode
+        connection.cursor().execute(
+            "SET SESSION sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO'"
+        )
         return connection
+
     except Error as e:
         print(f"Error connecting to MySQL: {e}")
         raise
