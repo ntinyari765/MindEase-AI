@@ -4,6 +4,7 @@ from mysql.connector import Error
 import os
 import json
 from datetime import datetime
+from urllib.parse import urlparse
 
 load_dotenv()
 
