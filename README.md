@@ -2,7 +2,7 @@
 
 **🧠 AI-Powered Mental Health Companion | Built with Flask & MySQL**
 
-![Live Demo](web-production-d5f0.up.railway.app)
+![Live Demo](https://web-production-d5f0.up.railway.app/)
 
 > **Detect stress early. Prevent burnout. Transform your wellness journey with AI.**
 
